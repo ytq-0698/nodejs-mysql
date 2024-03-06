@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { UserService } from './user.service';
+import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserDto } from '../dto/user.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class AuthService {
@@ -19,10 +20,6 @@ export class AuthService {
       return result;
     }
     return null;
-  }
-
-  async generateToken(payload: any): Promise<string> {
-    return this.jwtService.sign(payload);
   }
 
   async isTokenBlacklisted(token: string): Promise<boolean> {
@@ -46,11 +43,16 @@ export class AuthService {
   async login(user: UserDto) {
     const payload = { username: user.username, sub: user.userId };
     return {
-      access_token: this.generateToken(payload),
+      access_token: this.jwtService.sign(payload),
     };
   }
 
   async logout(token: string) {
     this.blacklist.push(token);
+  }
+
+  async create(user: UserDto) {
+    const savedUser = await this.userService.userRepository.save(user);
+    return plainToInstance(UserDto, savedUser);
   }
 }
