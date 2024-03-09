@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  my-sql:
+    image: mysql:8.0
+    ports:
+      - "3309:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ytran_dev
+      MYSQL_USER: user
+      MYSQL_PASSWORD: abc123
+    volumes:
+      - ./data/mysql:/var/lib/mysql
