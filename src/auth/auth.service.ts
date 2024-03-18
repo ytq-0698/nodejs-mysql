@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
-import { UserDto } from '../dto/user.dto';
 import { plainToInstance } from 'class-transformer';
+import * as bcrypt from 'bcrypt';
+
+import { UserService } from '../user/user.service';
+import { UserDataService } from '../user/user-data.service';
+import { UserDto } from '../dto/user.dto';
 
 @Injectable()
 export class AuthService {
   private readonly blacklist: string[] = [];
   constructor(
     private userService: UserService,
+    private userDataService: UserDataService,
     private jwtService: JwtService,
   ) {}
 
@@ -40,10 +44,21 @@ export class AuthService {
     }
   }
 
+  async hashPassword(password: string): Promise<string> {
+    const saltRound = 10;
+    const salt = await bcrypt.genSalt(saltRound);
+    const hash = await bcrypt.hash(password, salt);
+    return hash;
+  }
+
   async login(user: UserDto) {
     const payload = { username: user.username, sub: user.userId };
     return {
       access_token: this.jwtService.sign(payload),
+      refresh_token: this.jwtService.sign(payload, {
+        secret: 'xxx',
+        expiresIn: '1d',
+      }),
     };
   }
 
@@ -52,7 +67,39 @@ export class AuthService {
   }
 
   async create(user: UserDto) {
-    const savedUser = await this.userService.userRepository.save(user);
+    const payload = { username: user.username, sub: user.userId };
+    const password = await this.hashPassword(user.password);
+    const savedUser = await this.userService.userRepository.save({
+      ...user,
+      password,
+      refresh_token: this.jwtService.sign(payload, {
+        secret: 'xxx',
+        expiresIn: '1d',
+      }),
+    });
     return plainToInstance(UserDto, savedUser);
+  }
+
+  async checkIn(user_data): Promise<string> {
+    const currentTime = new Date().toISOString();
+    const newData = {
+      username: user_data.username,
+      userId: user_data.sub,
+      checkin: currentTime,
+      checkout: '',
+    };
+    await this.userDataService.userDataRepository.save(newData);
+    return `Checked in at: ${currentTime}`;
+  }
+
+  async checkOut(user_data): Promise<string> {
+    const currentTime = new Date().toISOString();
+    await this.userDataService.userDataRepository.update(
+      {
+        userId: user_data.sub,
+      },
+      { checkout: currentTime },
+    );
+    return `Checked out at: ${currentTime}`;
   }
 }

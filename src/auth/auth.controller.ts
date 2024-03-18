@@ -15,7 +15,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Request() req) {
-    return this.authService.login(req.user);
+    return this.authService.login(req.body);
   }
 
   @Post('logout')
@@ -28,5 +28,17 @@ export class AuthController {
   @Get('profile')
   getProfile(@Request() req) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('checkin')
+  async checkIn(@Request() req): Promise<string> {
+    return this.authService.checkIn(req.user_data);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('checkout')
+  async checkOut(@Request() req): Promise<string> {
+    return this.authService.checkOut(req.user_data);
   }
 }
