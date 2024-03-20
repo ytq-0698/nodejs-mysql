@@ -12,4 +12,7 @@ export class UserEntity {
 
   @Column()
   password: string;
+
+  @Column()
+  refresh_token: string;
 }
